@@ -2,8 +2,8 @@ package main
 
 import (
 	"image"
+	"math/rand"
 	"os"
-	"time"
 
 	_ "image/png"
 
@@ -36,30 +36,35 @@ func run() {
 		panic(err)
 	}
 
-	win.SetSmooth(true)
-
-	pic, err := loadPicture("sprites/hiking.png")
+	spritesheet, err := loadPicture("sprites/trees.png")
 	if err != nil {
 		panic(err)
 	}
 
-	sprite := pixel.NewSprite(pic, pic.Bounds())
+	var treesFrames []pixel.Rect
+	for x := spritesheet.Bounds().Min.X; x < spritesheet.Bounds().Max.X; x += 32 {
+		for y := spritesheet.Bounds().Min.Y; y < spritesheet.Bounds().Max.Y; y += 32 {
+			treesFrames = append(treesFrames, pixel.R(x, y, x+32, y+32))
+		}
+	}
 
-	angle := 0.0
+	var (
+		trees    []*pixel.Sprite
+		matrices []pixel.Matrix
+	)
 
-	last := time.Now()
 	for !win.Closed() {
-		dt := time.Since(last).Seconds()
-		last = time.Now()
+		if win.JustPressed(pixel.MouseButtonLeft) {
+			tree := pixel.NewSprite(spritesheet, treesFrames[rand.Intn(len(treesFrames))])
+			trees = append(trees, tree)
+			matrices = append(matrices, pixel.IM.Scaled(pixel.ZV, 4).Moved(win.MousePosition()))
+		}
 
-		angle += 3 * dt
+		win.Clear(colornames.Forestgreen)
 
-		win.Clear(colornames.Firebrick)
-
-		mat := pixel.IM
-		mat = mat.Rotated(pixel.ZV, angle)
-		mat = mat.Moved(win.Bounds().Center())
-		sprite.Draw(win, mat)
+		for i, tree := range trees {
+			tree.Draw(win, matrices[i])
+		}
 
 		win.Update()
 	}
