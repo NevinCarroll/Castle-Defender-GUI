@@ -6,6 +6,9 @@
 // path defined by "1" cells within that grid.
 package main
 
+const ROW_COUNT = 10
+const COLUMN_COUNT = 15
+
 // Track holds the map layout and the extracted path from that layout.
 // layout is a 10×15 grid of strings where "1" marks path segments and
 // "*" may also be treated as part of the active path. The path slice
