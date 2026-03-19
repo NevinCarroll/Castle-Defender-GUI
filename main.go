@@ -137,6 +137,10 @@ func run() {
 			previewPos = win.MousePosition()
 		}
 
+		if win.JustPressed(pixel.MouseButtonRight) {
+			placePreview = false
+		}
+
 		if win.JustPressed(pixel.MouseButtonLeft) && placePreview {
 			pos := win.MousePosition()
 			cfg := TowerConfigs[selectedTowerType]
