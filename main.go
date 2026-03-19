@@ -315,8 +315,6 @@ func run() {
 			towerDrawer.Color = colornames.White
 			towerDrawer.Push(tower.pos)
 			towerDrawer.Circle(2, 0)
-			towerDrawer.Push(tower.pos.Add(pixel.Vec{X: tower.radius, Y: 0}), tower.pos.Add(pixel.Vec{X: -tower.radius, Y: 0}))
-			towerDrawer.Line(1)
 		}
 		towerDrawer.Draw(win)
 
