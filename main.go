@@ -13,12 +13,14 @@ import (
 	"golang.org/x/image/font/basicfont"
 )
 
+// Game window constants.
 const (
 	windowWidth  = 1024
 	windowHeight = 768
 	enemyReward  = 25
 )
 
+// towerTypeName returns the display label for the selected TowerType.
 func towerTypeName(t TowerType) string {
 	switch t {
 	case TowerTypeStandard:
@@ -32,12 +34,14 @@ func towerTypeName(t TowerType) string {
 	}
 }
 
+// Laser represents a temporary visual beam fired by a tower.
 type Laser struct {
 	start pixel.Vec
 	end   pixel.Vec
 	time  float64
 }
 
+// gameState defines the finite states used by the main game loop.
 type gameState int
 
 const (
@@ -47,6 +51,7 @@ const (
 	stateGameOver
 )
 
+// drawCenteredText writes the provided lines centered horizontally on the screen at yStart.
 func drawCenteredText(target pixel.Target, txt *text.Text, lines []string, yStart float64) {
 	txt.Clear()
 	txt.Color = colornames.White
@@ -57,6 +62,7 @@ func drawCenteredText(target pixel.Target, txt *text.Text, lines []string, yStar
 	txt.Draw(target, pixel.IM.Moved(pixel.ZV))
 }
 
+// run initializes the window and enters the game loop, handling state transitions, input, updates, and rendering.
 func run() {
 	cfg := opengl.WindowConfig{
 		Title:  "Pixel Tower Defense",
@@ -98,6 +104,7 @@ func run() {
 
 	state := stateMenu
 
+	// resetGame resets all gameplay variables for a new session.
 	resetGame := func() {
 		enemies = []*Enemy{}
 		towers = []*Tower{}
@@ -123,6 +130,7 @@ func run() {
 		dt := time.Since(last).Seconds()
 		last = time.Now()
 
+		// Global shortcut: ESC closes the game unless playing, in which case it ends the run.
 		if win.JustPressed(pixel.KeyEscape) {
 			if state == statePlay {
 				state = stateGameOver
@@ -221,6 +229,7 @@ func run() {
 			placePreview = false
 		}
 
+		// Periodically spawn waves; spawn interval gradually decreases to escalate difficulty.
 		spawnTimer += dt
 		if spawnTimer >= spawnInterval {
 			wave++
@@ -232,6 +241,7 @@ func run() {
 			}
 		}
 
+		// Update all enemies, remove those that reached the end or died.
 		for i := 0; i < len(enemies); i++ {
 			en := enemies[i]
 			en.Update(dt, path)
