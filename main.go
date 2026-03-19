@@ -47,6 +47,7 @@ type Laser struct {
 // gameState defines the finite states used by the main game loop.
 type gameState int
 
+// States that the game is in, used to determine what should be displayed
 const (
 	stateMenu gameState = iota
 	stateTutorial
@@ -58,6 +59,7 @@ const (
 func drawCenteredText(target pixel.Target, txt *text.Text, lines []string, yStart float64) {
 	txt.Clear()
 	txt.Color = colornames.White
+	// Take window screen, half it the x and y value, then draw the text there
 	for i, line := range lines {
 		txt.Dot = pixel.V(windowWidth/2-float64(len(line))*3, yStart-float64(i)*30)
 		txt.WriteString(line)
@@ -67,8 +69,9 @@ func drawCenteredText(target pixel.Target, txt *text.Text, lines []string, yStar
 
 // run initializes the window and enters the game loop, handling state transitions, input, updates, and rendering.
 func run() {
+	// Set up configs of game
 	cfg := opengl.WindowConfig{
-		Title:  "Pixel Tower Defense",
+		Title:  "Castle Defender",
 		Bounds: pixel.R(0, 0, windowWidth, windowHeight),
 		VSync:  true,
 	}
@@ -78,13 +81,15 @@ func run() {
 	}
 
 	rand.Seed(time.Now().UnixNano())
-	atlas := text.NewAtlas(basicfont.Face7x13, text.ASCII)
-	txt := text.New(pixel.ZV, atlas)
+	atlas := text.NewAtlas(basicfont.Face7x13, text.ASCII) // Set font of text
+	txt := text.New(pixel.ZV, atlas) 
 
+	// Set up path for enemies to follow
 	path := []pixel.Vec{
 		{80, 160}, {240, 160}, {240, 420}, {560, 420}, {560, 220}, {840, 220}, {840, 640}, {940, 640},
 	}
 
+	// Varaiables that manage gameplay
 	enemies := []*Enemy{}
 	towers := []*Tower{}
 	lives := 5
@@ -94,18 +99,20 @@ func run() {
 	spawnInterval := 2.2
 	last := time.Now()
 
+	// For tower placement
 	selectedTowerType := TowerTypeStandard
 	placePreview := false
 	previewPos := pixel.ZV
 	lasers := []*Laser{}
 
+	// Player stats to display when game is over
 	goldEarned := 0
 	enemiesKilled := 0
 	towersPlaced := 0
 	wavesSurvived := 0
 	gameOverReason := ""
 
-	state := stateMenu
+	state := stateMenu // Set game state to main menu
 
 	// resetGame resets all gameplay variables for a new session.
 	resetGame := func() {
@@ -129,6 +136,7 @@ func run() {
 
 	resetGame()
 
+	// While game is running
 	for !win.Closed() {
 		dt := time.Since(last).Seconds()
 		last = time.Now()
@@ -144,10 +152,12 @@ func run() {
 			}
 		}
 
+		// Display correct menu depending on game state
 		switch state {
 		case stateMenu:
+			// Display main menu
 			win.Clear(colornames.Darkslategray)
-			lines := []string{"PIXEL TOWER DEFENSE", "", "Press ENTER to continue", "", "(Esc to quit)"}
+			lines := []string{"Castle Defender", "", "Press ENTER to continue", "", "(Esc to quit)"}
 			drawCenteredText(win, txt, lines, 460)
 			win.Update()
 			if win.JustPressed(pixel.KeyEnter) {
@@ -155,25 +165,30 @@ func run() {
 			}
 			continue
 		case stateTutorial:
+			// Display tutorial
 			win.Clear(colornames.Darkslategray)
 			lines := []string{
 				"TUTORIAL",
 				"",
 				"Press 1-3 to choose tower type",
 				"Then left click to place selected tower",
-				"Don't place towers on the path",
-				"Survive waves of enemies",
+				"Or right click to cancel tower placement",
+				"A tower preview will show you tower range and if you are allowed to place it",
+				"Survive as many waves of enemies as you can",
+				"or press quit to end game early",
 				"",
 				"Press ENTER to start playing",
 			}
 			drawCenteredText(win, txt, lines, 500)
 			win.Update()
-			if win.JustPressed(pixel.KeyEnter) {
+			if win.JustPressed(pixel.KeyEnter) { // Start game
 				state = statePlay
 			}
 			continue
 		case stateGameOver:
+			// Display game over screen
 			win.Clear(colornames.Black)
+			// Display player stats
 			lines := []string{
 				"GAME OVER",
 				"",
@@ -189,17 +204,18 @@ func run() {
 			}
 			drawCenteredText(win, txt, lines, 500)
 			win.Update()
-			if win.JustPressed(pixel.KeyEnter) {
+			if win.JustPressed(pixel.KeyEnter) { // Start new game
 				resetGame()
 				state = statePlay
 				continue
 			}
-			if win.JustPressed(pixel.KeyQ) || win.JustPressed(pixel.KeyEscape) {
+			if win.JustPressed(pixel.KeyQ) || win.JustPressed(pixel.KeyEscape) { // Quit game
 				return
 			}
 			continue
 		}
 
+		// Select tower type depending on which button the player pressed
 		if win.JustPressed(pixel.Key1) {
 			selectedTowerType = TowerTypeStandard
 			placePreview = true
@@ -213,32 +229,36 @@ func run() {
 			placePreview = true
 		}
 
+		// Show tower preview at cursor
 		if placePreview {
 			previewPos = win.MousePosition()
 		}
 
+		// Cancel tower placement
 		if win.JustPressed(pixel.MouseButtonRight) {
 			placePreview = false
 		}
 
+		// Place down tower after player pressed left click while previewing tower placement
 		if win.JustPressed(pixel.MouseButtonLeft) && placePreview {
-			pos := win.MousePosition()
+			pos := win.MousePosition() // Place tower at mouse position
 			cfg := TowerConfigs[selectedTowerType]
+			// Ensure player has enough gold and position is valid
 			if gold >= cfg.Cost && isValidPlacement(pos, path, towers) {
 				towers = append(towers, NewTower(pos, selectedTowerType))
 				gold -= cfg.Cost
 				towersPlaced++
 			}
-			placePreview = false
+			placePreview = false // Stop previewing tower
 		}
 
 		// Periodically spawn waves; spawn interval gradually decreases to escalate difficulty.
 		spawnTimer += dt
 		if spawnTimer >= spawnInterval {
 			wave++
-			spawnEnemyWave(&enemies, path, wave)
-			spawnTimer -= spawnInterval
-			spawnInterval *= 0.98
+			spawnEnemyWave(&enemies, path, wave) // Spawn enemies
+			spawnTimer -= spawnInterval 
+			spawnInterval *= 0.98 // Decrease spawn interval
 			if spawnInterval < 0.6 {
 				spawnInterval = 0.6
 			}
@@ -247,14 +267,15 @@ func run() {
 		// Update all enemies, remove those that reached the end or died.
 		for i := 0; i < len(enemies); i++ {
 			en := enemies[i]
-			en.Update(dt, path)
+			en.Update(dt, path) // Move enemies
+			// Make player lose life if enemy reaches the end, and despawn them
 			if en.ReachedEnd(path) {
 				lives--
 				enemies = append(enemies[:i], enemies[i+1:]...)
 				i--
 				continue
 			}
-			if en.IsDead() {
+			if en.IsDead() { // Give player gold for killing enemy
 				gold += enemyReward
 				goldEarned += enemyReward
 				enemiesKilled++
@@ -263,13 +284,16 @@ func run() {
 			}
 		}
 
+		// Make tower shot closest enemy if it can
 		for _, tower := range towers {
 			shot := tower.Update(dt, enemies)
+			// Add laser to list so that it will be rendered
 			if shot != nil {
 				lasers = append(lasers, &Laser{start: tower.pos, end: shot.pos, time: 0.15})
 			}
 		}
 
+		// Make player lose if they lose all lives
 		if lives <= 0 {
 			state = stateGameOver
 			wavesSurvived = wave
@@ -277,8 +301,10 @@ func run() {
 			continue
 		}
 
+		// Clear screen with background
 		win.Clear(colornames.Darkslategray)
 
+		// Draw path enemies will follow
 		lineDrawer := imdraw.New(nil)
 		lineDrawer.Color = colornames.Yellow
 		for i := 0; i < len(path)-1; i++ {
@@ -287,6 +313,7 @@ func run() {
 		}
 		lineDrawer.Draw(win)
 
+		// Draw path nodes
 		pathPoints := imdraw.New(nil)
 		for _, p := range path {
 			pathPoints.Color = colornames.White
@@ -295,10 +322,12 @@ func run() {
 		}
 		pathPoints.Draw(win)
 
+		// Draw tower preview when player wants to place a tower
 		if placePreview {
 			previewDrawer := imdraw.New(nil)
 			typeCfg := TowerConfigs[selectedTowerType]
 			valid := isValidPlacement(previewPos, path, towers)
+			// If tower placement is invalid, then display preview as red rather than blue
 			if valid {
 				previewDrawer.Color = colornames.Royalblue
 			} else {
@@ -311,8 +340,10 @@ func run() {
 			previewDrawer.Draw(win)
 		}
 
+		// Draw towers on screen
 		towerDrawer := imdraw.New(nil)
 		for _, tower := range towers {
+			// Determine tower type and draw corresponding color
 			switch tower.typeID {
 			case TowerTypeStandard:
 				towerDrawer.Color = colornames.Gold
@@ -331,8 +362,10 @@ func run() {
 		}
 		towerDrawer.Draw(win)
 
+		// Draw enemies on screen
 		enemyDrawer := imdraw.New(nil)
 		for _, enemy := range enemies {
+			// Determine enemy type and draw corresponding color
 			switch enemy.typeID {
 			case EnemyTypeFast:
 				enemyDrawer.Color = colornames.Plum
@@ -355,7 +388,7 @@ func run() {
 				lasers = append(lasers[:i], lasers[i+1:]...)
 				continue
 			}
-			alpha := laser.time / 0.15
+			alpha := laser.time / 0.15 // Slowly decrease laser alpha as time goes on
 			laserDrawer := imdraw.New(nil)
 			laserDrawer.Color = colornames.Orange
 			laserDrawer.Push(laser.start, laser.end)
@@ -364,6 +397,7 @@ func run() {
 			_ = alpha
 		}
 
+		// Draw text and player stats
 		txt.Clear()
 		txt.Dot = pixel.V(10, windowHeight-20)
 		txt.Color = colornames.White
@@ -377,30 +411,32 @@ func run() {
 // inPathArea returns true when the position is within 30 pixels of any path segment.
 func inPathArea(pos pixel.Vec, path []pixel.Vec) bool {
 	for i := 0; i < len(path)-1; i++ {
-		if pointToSegmentDistance(pos, path[i], path[i+1]) < 30 {
+		if distancePointToSegment(pos, path[i], path[i+1]) < 30 {
 			return true
 		}
 	}
 	return false
 }
 
-// pointToSegmentDistance returns the shortest Euclidean distance from point p to segment [a,b].
-func pointToSegmentDistance(p, a, b pixel.Vec) float64 {
-	ab := b.Sub(a)
-	ap := p.Sub(a)
-	denom := ab.Dot(ab)
-	if denom == 0 {
-		return p.Sub(a).Len()
+// distancePointToSegment returns the shortest Euclidean distance from point p to the segment [segA, segB].
+// It projects p onto the infinite line through the segment, clamps to the endpoints, and computes distance to the closest point.
+func distancePointToSegment(p, segA, segB pixel.Vec) float64 {
+	segmentVector := segB.Sub(segA)
+	pointVector := p.Sub(segA)
+	squaredLen := segmentVector.Dot(segmentVector)
+	if squaredLen == 0 {
+		return p.Sub(segA).Len()
 	}
-	t := ap.Dot(ab) / denom
+	
+	t := pointVector.Dot(segmentVector) / squaredLen
 	if t < 0 {
 		t = 0
 	}
 	if t > 1 {
 		t = 1
 	}
-	proj := a.Add(ab.Scaled(t))
-	return p.Sub(proj).Len()
+	closest := segA.Add(segmentVector.Scaled(t))
+	return p.Sub(closest).Len()
 }
 
 // isTowerOverlap returns true if a tower is too close to an existing tower.
@@ -429,6 +465,7 @@ func spawnEnemyWave(enemies *[]*Enemy, path []pixel.Vec, wave int) {
 	enemiesThisWave := 2 + (wave / 5)
 	for i := 0; i < enemiesThisWave; i++ {
 		r := rand.Float64()
+		// Chooses a random enemy type based off random chance
 		typeID := EnemyTypeDefault
 		if r < 0.25 {
 			typeID = EnemyTypeTank
