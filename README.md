@@ -52,6 +52,8 @@ In this game, you defend a castle path by placing towers that automatically shoo
 
 ## Run
 
+Clone git repo
+
 From project root:
 
 ```bash
