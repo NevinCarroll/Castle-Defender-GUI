@@ -15,9 +15,21 @@ import (
 const (
 	windowWidth  = 1024
 	windowHeight = 768
-	towerCost    = 100
 	enemyReward  = 50
 )
+
+func towerTypeName(t TowerType) string {
+	switch t {
+	case TowerTypeStandard:
+		return "1: Standard"
+	case TowerTypeRapid:
+		return "2: Rapid"
+	case TowerTypeSniper:
+		return "3: Sniper"
+	default:
+		return "None"
+	}
+}
 
 type gameState int
 
@@ -64,6 +76,10 @@ func run() {
 	spawnInterval := 2.2
 	last := time.Now()
 
+	selectedTowerType := TowerTypeStandard
+	placePreview := false
+	previewPos := pixel.ZV
+
 	state := stateMenu
 
 	for !win.Closed() {
@@ -89,7 +105,8 @@ func run() {
 			lines := []string{
 				"TUTORIAL",
 				"",
-				"Left click to place towers (cost 100)",
+				"Press 1-3 to choose tower type",
+				"Then left click to place selected tower",
 				"Don't place towers on the path",
 				"Survive waves of enemies",
 				"",
@@ -103,12 +120,31 @@ func run() {
 			continue
 		}
 
-		if win.JustPressed(pixel.MouseButtonLeft) {
+		if win.JustPressed(pixel.Key1) {
+			selectedTowerType = TowerTypeStandard
+			placePreview = true
+		}
+		if win.JustPressed(pixel.Key2) {
+			selectedTowerType = TowerTypeRapid
+			placePreview = true
+		}
+		if win.JustPressed(pixel.Key3) {
+			selectedTowerType = TowerTypeSniper
+			placePreview = true
+		}
+
+		if placePreview {
+			previewPos = win.MousePosition()
+		}
+
+		if win.JustPressed(pixel.MouseButtonLeft) && placePreview {
 			pos := win.MousePosition()
-			if gold >= towerCost && !inPathArea(pos, path) {
-				towers = append(towers, NewTower(pos))
-				gold -= towerCost
+			cfg := TowerConfigs[selectedTowerType]
+			if gold >= cfg.Cost && !inPathArea(pos, path) {
+				towers = append(towers, NewTower(pos, selectedTowerType))
+				gold -= cfg.Cost
 			}
+			placePreview = false
 		}
 
 		spawnTimer += dt
@@ -172,12 +208,33 @@ func run() {
 		}
 		pathPoints.Draw(win)
 
+		if placePreview {
+			previewDrawer := imdraw.New(nil)
+			previewDrawer.Color = colornames.Royalblue
+			typeCfg := TowerConfigs[selectedTowerType]
+			previewDrawer.Push(previewPos)
+			previewDrawer.Circle(10, 0)
+			previewDrawer.Color = colornames.Royalblue
+			previewDrawer.Push(previewPos)
+			previewDrawer.Circle(typeCfg.Radius, 1)
+			previewDrawer.Draw(win)
+		}
+
 		towerDrawer := imdraw.New(nil)
 		for _, tower := range towers {
-			towerDrawer.Color = colornames.Gold
+			switch tower.typeID {
+			case TowerTypeStandard:
+				towerDrawer.Color = colornames.Gold
+			case TowerTypeRapid:
+				towerDrawer.Color = colornames.Limegreen
+			case TowerTypeSniper:
+				towerDrawer.Color = colornames.Mediumblue
+			default:
+				towerDrawer.Color = colornames.Gold
+			}
 			towerDrawer.Push(tower.pos)
 			towerDrawer.Circle(10, 0)
-			towerDrawer.Color = colornames.Royalblue
+			towerDrawer.Color = colornames.White
 			towerDrawer.Push(tower.pos)
 			towerDrawer.Circle(2, 0)
 			towerDrawer.Push(tower.pos.Add(pixel.Vec{X: tower.radius, Y: 0}), tower.pos.Add(pixel.Vec{X: -tower.radius, Y: 0}))
@@ -197,7 +254,7 @@ func run() {
 		txt.Clear()
 		txt.Dot = pixel.V(10, windowHeight-20)
 		txt.Color = colornames.White
-		txt.WriteString(fmt.Sprintf("Lives: %d   Gold: %d   Wave: %d   Towers: %d   Enemies: %d", lives, gold, wave, len(towers), len(enemies)))
+		txt.WriteString(fmt.Sprintf("Lives: %d   Gold: %d   Wave: %d   Towers: %d   Enemies: %d   Selected: %s", lives, gold, wave, len(towers), len(enemies), towerTypeName(selectedTowerType)))
 		txt.Draw(win, pixel.IM.Moved(pixel.ZV))
 
 		win.Update()
