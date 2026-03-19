@@ -16,7 +16,7 @@ import (
 const (
 	windowWidth  = 1024
 	windowHeight = 768
-	enemyReward  = 50
+	enemyReward  = 25
 )
 
 func towerTypeName(t TowerType) string {
