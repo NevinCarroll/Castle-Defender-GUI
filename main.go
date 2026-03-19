@@ -1,3 +1,6 @@
+// Package main implements a simple tower defense game built with Pixel.
+// It supports menu/tutorial/gameplay/game-over states, tower placement, enemy waves,
+// and attack logic for standard, rapid, and sniper towers.
 package main
 
 import (
@@ -13,12 +16,14 @@ import (
 	"golang.org/x/image/font/basicfont"
 )
 
+// Game window constants.
 const (
 	windowWidth  = 1024
 	windowHeight = 768
 	enemyReward  = 25
 )
 
+// towerTypeName returns the display label for the selected TowerType.
 func towerTypeName(t TowerType) string {
 	switch t {
 	case TowerTypeStandard:
@@ -32,12 +37,14 @@ func towerTypeName(t TowerType) string {
 	}
 }
 
+// Laser represents a temporary visual beam fired by a tower.
 type Laser struct {
 	start pixel.Vec
 	end   pixel.Vec
 	time  float64
 }
 
+// gameState defines the finite states used by the main game loop.
 type gameState int
 
 const (
@@ -47,6 +54,7 @@ const (
 	stateGameOver
 )
 
+// drawCenteredText writes the provided lines centered horizontally on the screen at yStart.
 func drawCenteredText(target pixel.Target, txt *text.Text, lines []string, yStart float64) {
 	txt.Clear()
 	txt.Color = colornames.White
@@ -57,6 +65,7 @@ func drawCenteredText(target pixel.Target, txt *text.Text, lines []string, yStar
 	txt.Draw(target, pixel.IM.Moved(pixel.ZV))
 }
 
+// run initializes the window and enters the game loop, handling state transitions, input, updates, and rendering.
 func run() {
 	cfg := opengl.WindowConfig{
 		Title:  "Pixel Tower Defense",
@@ -98,6 +107,7 @@ func run() {
 
 	state := stateMenu
 
+	// resetGame resets all gameplay variables for a new session.
 	resetGame := func() {
 		enemies = []*Enemy{}
 		towers = []*Tower{}
@@ -123,6 +133,7 @@ func run() {
 		dt := time.Since(last).Seconds()
 		last = time.Now()
 
+		// Global shortcut: ESC closes the game unless playing, in which case it ends the run.
 		if win.JustPressed(pixel.KeyEscape) {
 			if state == statePlay {
 				state = stateGameOver
@@ -221,6 +232,7 @@ func run() {
 			placePreview = false
 		}
 
+		// Periodically spawn waves; spawn interval gradually decreases to escalate difficulty.
 		spawnTimer += dt
 		if spawnTimer >= spawnInterval {
 			wave++
@@ -232,6 +244,7 @@ func run() {
 			}
 		}
 
+		// Update all enemies, remove those that reached the end or died.
 		for i := 0; i < len(enemies); i++ {
 			en := enemies[i]
 			en.Update(dt, path)
@@ -360,7 +373,7 @@ func run() {
 		win.Update()
 	}
 }
-
+// inPathArea returns true when the position is within 30 pixels of any path segment.
 func inPathArea(pos pixel.Vec, path []pixel.Vec) bool {
 	for i := 0; i < len(path)-1; i++ {
 		if pointToSegmentDistance(pos, path[i], path[i+1]) < 30 {
@@ -370,6 +383,7 @@ func inPathArea(pos pixel.Vec, path []pixel.Vec) bool {
 	return false
 }
 
+// pointToSegmentDistance returns the shortest Euclidean distance from point p to segment [a,b].
 func pointToSegmentDistance(p, a, b pixel.Vec) float64 {
 	ab := b.Sub(a)
 	ap := p.Sub(a)
@@ -388,6 +402,7 @@ func pointToSegmentDistance(p, a, b pixel.Vec) float64 {
 	return p.Sub(proj).Len()
 }
 
+// isTowerOverlap returns true if a tower is too close to an existing tower.
 func isTowerOverlap(pos pixel.Vec, towers []*Tower) bool {
 	for _, t := range towers {
 		if pos.Sub(t.pos).Len() < 24 {
@@ -397,6 +412,7 @@ func isTowerOverlap(pos pixel.Vec, towers []*Tower) bool {
 	return false
 }
 
+// isValidPlacement returns true if pos is not on the path and not overlapping another tower.
 func isValidPlacement(pos pixel.Vec, path []pixel.Vec, towers []*Tower) bool {
 	if inPathArea(pos, path) {
 		return false
@@ -407,6 +423,7 @@ func isValidPlacement(pos pixel.Vec, path []pixel.Vec, towers []*Tower) bool {
 	return true
 }
 
+// spawnEnemyWave queues a new wave of enemies at the path start with randomized types.
 func spawnEnemyWave(enemies *[]*Enemy, path []pixel.Vec, wave int) {
 	enemiesThisWave := 2 + (wave / 5)
 	for i := 0; i < enemiesThisWave; i++ {
@@ -421,6 +438,7 @@ func spawnEnemyWave(enemies *[]*Enemy, path []pixel.Vec, wave int) {
 	}
 }
 
+// main starts the opengl Pixel runtime and launches run().
 func main() {
 	opengl.Run(run)
 }

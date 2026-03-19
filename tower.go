@@ -2,6 +2,7 @@ package main
 
 import "github.com/gopxl/pixel/v2"
 
+// TowerType enumerates the available tower classes the player can build.
 type TowerType int
 
 const (
@@ -10,6 +11,7 @@ const (
 	TowerTypeSniper
 )
 
+// Tower stores per-instance placement and attack state.
 type Tower struct {
 	pos           pixel.Vec
 	radius        float64
@@ -19,6 +21,7 @@ type Tower struct {
 	typeID        TowerType
 }
 
+// TowerConfig is the static configuration for each TowerType.
 type TowerConfig struct {
 	Radius        float64
 	Damage        float64
@@ -27,12 +30,14 @@ type TowerConfig struct {
 	Label         string
 }
 
+// TowerConfigs maps tower types to their static gameplay values for radius, damage, cadence, and cost.
 var TowerConfigs = map[TowerType]TowerConfig{
 	TowerTypeStandard: {Radius: 120, Damage: 1.0, AttackCadence: 0.16, Cost: 100, Label: "Standard"},
 	TowerTypeRapid:    {Radius: 90, Damage: 0.5, AttackCadence: 0.08, Cost: 100, Label: "Rapid"},
 	TowerTypeSniper:   {Radius: 180, Damage: 2.5, AttackCadence: 0.35, Cost: 100, Label: "Sniper"},
 }
 
+// NewTower creates a new tower instance for the given type and position.
 func NewTower(pos pixel.Vec, typeID TowerType) *Tower {
 	cfg, ok := TowerConfigs[typeID]
 	if !ok {
@@ -42,6 +47,8 @@ func NewTower(pos pixel.Vec, typeID TowerType) *Tower {
 	return &Tower{pos: pos, radius: cfg.Radius, damage: cfg.Damage, attackCadence: cfg.AttackCadence, typeID: typeID}
 }
 
+// Update checks cooldown, finds the closest target in range, and applies damage once ready.
+// Returns the enemy that was attacked (or nil if no attack occurred).
 func (t *Tower) Update(dt float64, enemies []*Enemy) *Enemy {
 	t.cooldown -= dt
 	if t.cooldown > 0 {
