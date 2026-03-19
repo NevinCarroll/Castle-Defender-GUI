@@ -156,7 +156,7 @@ func run() {
 		spawnTimer += dt
 		if spawnTimer >= spawnInterval {
 			wave++
-			spawnEnemyWave(&enemies, path)
+			spawnEnemyWave(&enemies, path, wave)
 			spawnTimer -= spawnInterval
 			spawnInterval *= 0.98
 			if spawnInterval < 0.6 {
@@ -301,8 +301,9 @@ func pointToSegmentDistance(p, a, b pixel.Vec) float64 {
 	return p.Sub(proj).Len()
 }
 
-func spawnEnemyWave(enemies *[]*Enemy, path []pixel.Vec) {
-	for i := 0; i < 2; i++ {
+func spawnEnemyWave(enemies *[]*Enemy, path []pixel.Vec, wave int) {
+	enemiesThisWave := 2 + (wave / 5)
+	for i := 0; i < enemiesThisWave; i++ {
 		r := rand.Float64()
 		typeID := EnemyTypeDefault
 		if r < 0.25 {
