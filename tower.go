@@ -39,11 +39,12 @@ var TowerConfigs = map[TowerType]TowerConfig{
 
 // NewTower creates a new tower instance for the given type and position.
 func NewTower(pos pixel.Vec, typeID TowerType) *Tower {
-	cfg, ok := TowerConfigs[typeID]
+	cfg, ok := TowerConfigs[typeID] // Gets tower type and its stats
 	if !ok {
-		cfg = TowerConfigs[TowerTypeStandard]
+		cfg = TowerConfigs[TowerTypeStandard] 
 		typeID = TowerTypeStandard
 	}
+	// Returns the new tower type
 	return &Tower{pos: pos, radius: cfg.Radius, damage: cfg.Damage, attackCadence: cfg.AttackCadence, typeID: typeID}
 }
 
@@ -51,23 +52,25 @@ func NewTower(pos pixel.Vec, typeID TowerType) *Tower {
 // Returns the enemy that was attacked (or nil if no attack occurred).
 func (t *Tower) Update(dt float64, enemies []*Enemy) *Enemy {
 	t.cooldown -= dt
+	// If on cooldown, don't attack
 	if t.cooldown > 0 {
 		return nil
 	}
 
 	var target *Enemy
 	closest := 1e9
-	for _, e := range enemies {
+	for _, e := range enemies { // Checkes all enemies in range
 		if e.IsDead() {
 			continue
 		}
-		d := e.pos.Sub(t.pos).Len()
+		d := e.pos.Sub(t.pos).Len() // Take enemy position, subtract by towers position, to figure out distance between the two
 		if d <= t.radius && d < closest {
 			target = e
 			closest = d
 		}
 	}
 
+	// Damage enemy
 	if target != nil {
 		target.TakeDamage(t.damage)
 		t.cooldown = t.attackCadence

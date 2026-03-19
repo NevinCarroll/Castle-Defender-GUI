@@ -420,6 +420,7 @@ func inPathArea(pos pixel.Vec, path []pixel.Vec) bool {
 
 // distancePointToSegment returns the shortest Euclidean distance from point p to the segment [segA, segB].
 // It projects p onto the infinite line through the segment, clamps to the endpoints, and computes distance to the closest point.
+//
 func distancePointToSegment(p, segA, segB pixel.Vec) float64 {
 	segmentVector := segB.Sub(segA)
 	pointVector := p.Sub(segA)

@@ -27,13 +27,13 @@ func NewEnemy(start pixel.Vec, typeID EnemyType) *Enemy {
 	switch typeID {
 	case EnemyTypeFast:
 		speed = 150
-		health = 4
+		health = 3
 	case EnemyTypeTank:
 		speed = 50
-		health = 20
+		health = 15
 	default:
 		speed = 90
-		health = 7
+		health = 5
 	}
 	return &Enemy{pos: start, pathPoint: 0, speed: speed, health: health, maxHealth: health, typeID: typeID}
 }
@@ -43,21 +43,21 @@ func (e *Enemy) Update(dt float64, path []pixel.Vec) {
 	if e.pathPoint >= len(path)-1 {
 		return
 	}
-	target := path[e.pathPoint+1]
-	dir := target.Sub(e.pos)
-	distance := dir.Len()
-	if distance < 1 {
+	target := path[e.pathPoint+1] // Path node enemy is moving towards
+	dir := target.Sub(e.pos) // Get direction enemy should move
+	distance := dir.Len() // Get distance 
+	if distance < 1 { // If enemy is close enough, make them start heading to the next point
 		e.pathPoint++
 		if e.pathPoint < len(path) {
-			e.pos = path[e.pathPoint]
+			e.pos = path[e.pathPoint] // Set position to the point they just reached
 		}
 		return
 	}
-	move := dir.Unit().Scaled(e.speed * dt)
-	if move.Len() >= distance {
+	move := dir.Unit().Scaled(e.speed * dt) // Moved in the direction by the amount of speed times the amount time since the last frame
+	if move.Len() >= distance { // If enemy would move over point, assign their position to the point and set next path point
 		e.pos = target
 		e.pathPoint++
-	} else {
+	} else { // Move enemy
 		e.pos = e.pos.Add(move)
 	}
 }
