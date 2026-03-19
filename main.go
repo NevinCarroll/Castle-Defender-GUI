@@ -146,7 +146,7 @@ func run() {
 		if win.JustPressed(pixel.MouseButtonLeft) && placePreview {
 			pos := win.MousePosition()
 			cfg := TowerConfigs[selectedTowerType]
-			if gold >= cfg.Cost && !inPathArea(pos, path) {
+			if gold >= cfg.Cost && isValidPlacement(pos, path, towers) {
 				towers = append(towers, NewTower(pos, selectedTowerType))
 				gold -= cfg.Cost
 			}
@@ -216,11 +216,15 @@ func run() {
 
 		if placePreview {
 			previewDrawer := imdraw.New(nil)
-			previewDrawer.Color = colornames.Royalblue
 			typeCfg := TowerConfigs[selectedTowerType]
+			valid := isValidPlacement(previewPos, path, towers)
+			if valid {
+				previewDrawer.Color = colornames.Royalblue
+			} else {
+				previewDrawer.Color = colornames.Red
+			}
 			previewDrawer.Push(previewPos)
 			previewDrawer.Circle(10, 0)
-			previewDrawer.Color = colornames.Royalblue
 			previewDrawer.Push(previewPos)
 			previewDrawer.Circle(typeCfg.Radius, 1)
 			previewDrawer.Draw(win)
@@ -299,6 +303,25 @@ func pointToSegmentDistance(p, a, b pixel.Vec) float64 {
 	}
 	proj := a.Add(ab.Scaled(t))
 	return p.Sub(proj).Len()
+}
+
+func isTowerOverlap(pos pixel.Vec, towers []*Tower) bool {
+	for _, t := range towers {
+		if pos.Sub(t.pos).Len() < 24 {
+			return true
+		}
+	}
+	return false
+}
+
+func isValidPlacement(pos pixel.Vec, path []pixel.Vec, towers []*Tower) bool {
+	if inPathArea(pos, path) {
+		return false
+	}
+	if isTowerOverlap(pos, towers) {
+		return false
+	}
+	return true
 }
 
 func spawnEnemyWave(enemies *[]*Enemy, path []pixel.Vec, wave int) {
