@@ -42,10 +42,10 @@ func NewTower(pos pixel.Vec, typeID TowerType) *Tower {
 	return &Tower{pos: pos, radius: cfg.Radius, damage: cfg.Damage, attackCadence: cfg.AttackCadence, typeID: typeID}
 }
 
-func (t *Tower) Update(dt float64, enemies []*Enemy) {
+func (t *Tower) Update(dt float64, enemies []*Enemy) *Enemy {
 	t.cooldown -= dt
 	if t.cooldown > 0 {
-		return
+		return nil
 	}
 
 	var target *Enemy
@@ -64,5 +64,7 @@ func (t *Tower) Update(dt float64, enemies []*Enemy) {
 	if target != nil {
 		target.TakeDamage(t.damage)
 		t.cooldown = t.attackCadence
+		return target
 	}
+	return nil
 }

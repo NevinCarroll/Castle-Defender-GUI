@@ -32,6 +32,12 @@ func towerTypeName(t TowerType) string {
 	}
 }
 
+type Laser struct {
+	start pixel.Vec
+	end   pixel.Vec
+	time  float64
+}
+
 type gameState int
 
 const (
@@ -81,6 +87,7 @@ func run() {
 	selectedTowerType := TowerTypeStandard
 	placePreview := false
 	previewPos := pixel.ZV
+	lasers := []*Laser{}
 
 	state := stateMenu
 
@@ -181,7 +188,10 @@ func run() {
 		}
 
 		for _, tower := range towers {
-			tower.Update(dt, enemies)
+			shot := tower.Update(dt, enemies)
+			if shot != nil {
+				lasers = append(lasers, &Laser{start: tower.pos, end: shot.pos, time: 0.15})
+			}
 		}
 
 		if lives <= 0 {
@@ -267,6 +277,23 @@ func run() {
 			enemyDrawer.Line(3)
 		}
 		enemyDrawer.Draw(win)
+
+		// Draw lasers as short traces and fade them out
+		for i := len(lasers) - 1; i >= 0; i-- {
+			laser := lasers[i]
+			laser.time -= dt
+			if laser.time <= 0 {
+				lasers = append(lasers[:i], lasers[i+1:]...)
+				continue
+			}
+			alpha := laser.time / 0.15
+			laserDrawer := imdraw.New(nil)
+			laserDrawer.Color = colornames.Orange
+			laserDrawer.Push(laser.start, laser.end)
+			laserDrawer.Line(2)
+			laserDrawer.Draw(win)
+			_ = alpha
+		}
 
 		txt.Clear()
 		txt.Dot = pixel.V(10, windowHeight-20)
