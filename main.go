@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"time"
 
 	"github.com/gopxl/pixel/v2"
@@ -60,6 +61,7 @@ func run() {
 		panic(err)
 	}
 
+	rand.Seed(time.Now().UnixNano())
 	atlas := text.NewAtlas(basicfont.Face7x13, text.ASCII)
 	txt := text.New(pixel.ZV, atlas)
 
@@ -248,7 +250,14 @@ func run() {
 
 		enemyDrawer := imdraw.New(nil)
 		for _, enemy := range enemies {
-			enemyDrawer.Color = colornames.Crimson
+			switch enemy.typeID {
+			case EnemyTypeFast:
+				enemyDrawer.Color = colornames.Plum
+			case EnemyTypeTank:
+				enemyDrawer.Color = colornames.Darkred
+			default:
+				enemyDrawer.Color = colornames.Crimson
+			}
 			enemyDrawer.Push(enemy.pos)
 			enemyDrawer.Circle(7, 0)
 			enemyDrawer.Line(3)
@@ -294,7 +303,14 @@ func pointToSegmentDistance(p, a, b pixel.Vec) float64 {
 
 func spawnEnemyWave(enemies *[]*Enemy, path []pixel.Vec) {
 	for i := 0; i < 2; i++ {
-		*enemies = append(*enemies, NewEnemy(path[0], 90+float64(i*15), 7))
+		r := rand.Float64()
+		typeID := EnemyTypeDefault
+		if r < 0.25 {
+			typeID = EnemyTypeTank
+		} else if r < 0.6 {
+			typeID = EnemyTypeFast
+		}
+		*enemies = append(*enemies, NewEnemy(path[0], typeID))
 	}
 }
 

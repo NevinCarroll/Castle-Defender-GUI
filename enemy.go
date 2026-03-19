@@ -2,16 +2,37 @@ package main
 
 import "github.com/gopxl/pixel/v2"
 
+type EnemyType int
+
+const (
+	EnemyTypeDefault EnemyType = iota
+	EnemyTypeFast
+	EnemyTypeTank
+)
+
 type Enemy struct {
 	pos       pixel.Vec
 	pathPoint int
 	speed     float64
 	health    float64
 	maxHealth float64
+	typeID    EnemyType
 }
 
-func NewEnemy(start pixel.Vec, speed float64, health float64) *Enemy {
-	return &Enemy{pos: start, pathPoint: 0, speed: speed, health: health, maxHealth: health}
+func NewEnemy(start pixel.Vec, typeID EnemyType) *Enemy {
+	var speed, health float64
+	switch typeID {
+	case EnemyTypeFast:
+		speed = 150
+		health = 4
+	case EnemyTypeTank:
+		speed = 50
+		health = 20
+	default:
+		speed = 90
+		health = 7
+	}
+	return &Enemy{pos: start, pathPoint: 0, speed: speed, health: health, maxHealth: health, typeID: typeID}
 }
 
 func (e *Enemy) Update(dt float64, path []pixel.Vec) {
