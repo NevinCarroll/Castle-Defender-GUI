@@ -44,6 +44,7 @@ const (
 	stateMenu gameState = iota
 	stateTutorial
 	statePlay
+	stateGameOver
 )
 
 func drawCenteredText(target pixel.Target, txt *text.Text, lines []string, yStart float64) {
@@ -89,14 +90,47 @@ func run() {
 	previewPos := pixel.ZV
 	lasers := []*Laser{}
 
+	goldEarned := 0
+	enemiesKilled := 0
+	towersPlaced := 0
+	wavesSurvived := 0
+	gameOverReason := ""
+
 	state := stateMenu
+
+	resetGame := func() {
+		enemies = []*Enemy{}
+		towers = []*Tower{}
+		lives = 5
+		gold = 300
+		wave = 0
+		spawnTimer = 0.0
+		spawnInterval = 2.2
+		selectedTowerType = TowerTypeStandard
+		placePreview = false
+		previewPos = pixel.ZV
+		lasers = []*Laser{}
+		goldEarned = 0
+		enemiesKilled = 0
+		towersPlaced = 0
+		wavesSurvived = 0
+		gameOverReason = ""
+	}
+
+	resetGame()
 
 	for !win.Closed() {
 		dt := time.Since(last).Seconds()
 		last = time.Now()
 
 		if win.JustPressed(pixel.KeyEscape) {
-			break
+			if state == statePlay {
+				state = stateGameOver
+				wavesSurvived = wave
+				gameOverReason = "Player quit"
+			} else {
+				break
+			}
 		}
 
 		switch state {
@@ -125,6 +159,32 @@ func run() {
 			win.Update()
 			if win.JustPressed(pixel.KeyEnter) {
 				state = statePlay
+			}
+			continue
+		case stateGameOver:
+			win.Clear(colornames.Black)
+			lines := []string{
+				"GAME OVER",
+				"",
+				fmt.Sprintf("Reason: %s", gameOverReason),
+				"",
+				fmt.Sprintf("Gold earned: %d", goldEarned),
+				fmt.Sprintf("Enemies killed: %d", enemiesKilled),
+				fmt.Sprintf("Towers placed: %d", towersPlaced),
+				fmt.Sprintf("Waves survived: %d", wavesSurvived),
+				"",
+				"Press ENTER to start a new game",
+				"Press Q or ESC to quit",
+			}
+			drawCenteredText(win, txt, lines, 500)
+			win.Update()
+			if win.JustPressed(pixel.KeyEnter) {
+				resetGame()
+				state = statePlay
+				continue
+			}
+			if win.JustPressed(pixel.KeyQ) || win.JustPressed(pixel.KeyEscape) {
+				return
 			}
 			continue
 		}
@@ -156,6 +216,7 @@ func run() {
 			if gold >= cfg.Cost && isValidPlacement(pos, path, towers) {
 				towers = append(towers, NewTower(pos, selectedTowerType))
 				gold -= cfg.Cost
+				towersPlaced++
 			}
 			placePreview = false
 		}
@@ -182,6 +243,8 @@ func run() {
 			}
 			if en.IsDead() {
 				gold += enemyReward
+				goldEarned += enemyReward
+				enemiesKilled++
 				enemies = append(enemies[:i], enemies[i+1:]...)
 				i--
 			}
@@ -195,15 +258,10 @@ func run() {
 		}
 
 		if lives <= 0 {
-			win.Clear(colornames.Black)
-			txt.Clear()
-			txt.Dot = pixel.V(320, 380)
-			txt.Color = colornames.White
-			txt.WriteString("GAME OVER")
-			txt.Draw(win, pixel.IM.Moved(pixel.ZV))
-			win.Update()
-			time.Sleep(2 * time.Second)
-			break
+			state = stateGameOver
+			wavesSurvived = wave
+			gameOverReason = "All lives lost"
+			continue
 		}
 
 		win.Clear(colornames.Darkslategray)
