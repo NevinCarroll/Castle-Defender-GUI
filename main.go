@@ -373,6 +373,7 @@ func run() {
 		win.Update()
 	}
 }
+
 // inPathArea returns true when the position is within 30 pixels of any path segment.
 func inPathArea(pos pixel.Vec, path []pixel.Vec) bool {
 	for i := 0; i < len(path)-1; i++ {
