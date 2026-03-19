@@ -19,6 +19,24 @@ const (
 	enemyReward  = 50
 )
 
+type gameState int
+
+const (
+	stateMenu gameState = iota
+	stateTutorial
+	statePlay
+)
+
+func drawCenteredText(target pixel.Target, txt *text.Text, lines []string, yStart float64) {
+	txt.Clear()
+	txt.Color = colornames.White
+	for i, line := range lines {
+		txt.Dot = pixel.V(windowWidth/2-float64(len(line))*3, yStart-float64(i)*30)
+		txt.WriteString(line)
+	}
+	txt.Draw(target, pixel.IM.Moved(pixel.ZV))
+}
+
 func run() {
 	cfg := opengl.WindowConfig{
 		Title:  "Pixel Tower Defense",
@@ -46,12 +64,43 @@ func run() {
 	spawnInterval := 2.2
 	last := time.Now()
 
+	state := stateMenu
+
 	for !win.Closed() {
 		dt := time.Since(last).Seconds()
 		last = time.Now()
 
 		if win.JustPressed(pixel.KeyEscape) {
 			break
+		}
+
+		switch state {
+		case stateMenu:
+			win.Clear(colornames.Darkslategray)
+			lines := []string{"PIXEL TOWER DEFENSE", "", "Press ENTER to continue", "", "(Esc to quit)"}
+			drawCenteredText(win, txt, lines, 460)
+			win.Update()
+			if win.JustPressed(pixel.KeyEnter) {
+				state = stateTutorial
+			}
+			continue
+		case stateTutorial:
+			win.Clear(colornames.Darkslategray)
+			lines := []string{
+				"TUTORIAL",
+				"",
+				"Left click to place towers (cost 100)",
+				"Don't place towers on the path",
+				"Survive waves of enemies",
+				"",
+				"Press ENTER to start playing",
+			}
+			drawCenteredText(win, txt, lines, 500)
+			win.Update()
+			if win.JustPressed(pixel.KeyEnter) {
+				state = statePlay
+			}
+			continue
 		}
 
 		if win.JustPressed(pixel.MouseButtonLeft) {
